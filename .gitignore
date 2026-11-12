@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dados (grandes, baixados da ANAC)
+data/
+
+# Segredos
+.env
+*.env
+
+# Modelos treinados e arquivos temporários
+*.joblib
+*.parquet
+.ipynb_checkpoints/
