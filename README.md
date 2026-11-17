@@ -23,6 +23,25 @@ Quem vai comprar uma passagem ou escolher o tempo de espera entre dois voos prec
 - **Lista final de aeroportos e contagens:** *a preencher após a etapa de limpeza.*
 - Os dados **não** estão neste repositório. Veja "Como rodar" para baixá-los.
 
+### Dicionário de dados
+
+Colunas da base VRA utilizadas no projeto:
+
+| Coluna | Significado | Tipo | Fuso/formato | Uso no projeto |
+|---|---|---|---|---|
+| ICAO Empresa Aérea | Sigla ICAO (International Civil Aviation Organization) para empresas aéreas | Texto | - | Variável |
+| Número Voo | Numeração do voo | Número | - | Identificador |
+| Código Autorização (DI) | Caractere usado para identificar o Dígito Identificador (DI) para cada etapa de voo | Número | - | A ser investigado
+| Código Tipo Linha | Caractere usado para identificar o Tipo de Linha realizada para cada etapa de voo | Texto | - | A ser investigado |
+| ICAO Aeródromo Origem | Sigla ICAO do aeroporto de origem | Texto | - | Variável |
+| ICAO Aeródromo Destino | Sigla ICAO do aeroporto de destino | Texto | - | Variável |
+| Partida Prevista | Data e horário da partida prevista informada pela empresa aérea | Data | Brasília | Variável |
+| Partida Real | Data e horário da partida realizada informada pela empresa aérea | Data | Brasíia | 
+| Chegada Prevista | Data e horário da chegada prevista informada pela empresa aérea | Data | Brasília | 
+| Chegada Real | Data e horário da chegada realizada informada pela empresa aérea | Data | Brasília | 
+| Situação Voo | Campo informando a situação do voo: realizado, cancelado ou não informado | Texto | - | 
+| Código Justificativa | Este campo deixou de ser exigido a partir de abril de 2020, com a revogação da Instrução de Aviação Civil (IAC) 1504 | Texto | - | Ignorado |
+
 ## Principais decisões de modelagem
 
 - **Divisão por data, e não aleatória:** o modelo treina com o passado e é testado com o futuro, como seria na prática.
