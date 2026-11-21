@@ -32,16 +32,31 @@ Colunas da base VRA utilizadas no projeto:
 | ICAO Empresa Aérea | Sigla ICAO (International Civil Aviation Organization) para empresas aéreas | Texto | - | Variável |
 | Número Voo | Numeração do voo | Número | - | Identificador |
 | Código Autorização (DI) | Caractere usado para identificar o Dígito Identificador (DI) para cada etapa de voo | Número | - | A ser investigado
-| Código Tipo Linha | Caractere usado para identificar o Tipo de Linha realizada para cada etapa de voo | Texto | - | A ser investigado |
+| Código Tipo Linha | Caractere usado para identificar o Tipo de Linha realizada para cada etapa de voo | Texto | - | Filtro |
 | ICAO Aeródromo Origem | Sigla ICAO do aeroporto de origem | Texto | - | Variável |
 | ICAO Aeródromo Destino | Sigla ICAO do aeroporto de destino | Texto | - | Variável |
 | Partida Prevista | Data e horário da partida prevista informada pela empresa aérea | Data | Brasília | Variável |
-| Partida Real | Data e horário da partida realizada informada pela empresa aérea | Data | Brasíia | 
-| Chegada Prevista | Data e horário da chegada prevista informada pela empresa aérea | Data | Brasília | 
-| Chegada Real | Data e horário da chegada realizada informada pela empresa aérea | Data | Brasília | 
-| Situação Voo | Campo informando a situação do voo: realizado, cancelado ou não informado | Texto | - | 
-| Código Justificativa | Este campo deixou de ser exigido a partir de abril de 2020, com a revogação da Instrução de Aviação Civil (IAC) 1504 | Texto | - | Ignorado |
+| Partida Real | Data e horário da partida realizada informada pela empresa aérea | Data | Brasília | Auxiliar (calcula o alvo) |
+| Chegada Prevista | Data e horário da chegada prevista informada pela empresa aérea | Data | Brasília | Variável (a ser descartada) |
+| Chegada Real | Data e horário da chegada realizada informada pela empresa aérea | Data | Brasília | Variável (a ser descartada) |
+| Situação Voo | Campo informando a situação do voo: realizado, cancelado ou não informado | Texto | - | Filtro |
+| Código Justificativa | Este campo deixou de ser exigido a partir de abril de 2020, com a revogação da Instrução de Aviação Civil (IAC) 1504 | Texto | - | Descartada |
 
+#### Regras adotadas
+
+- **Fuso Horário:** todos os horários da base estão no horário de Brasília [fonte: metadados do VRA da ANAC]. Nenhuma conversão foi necessária.
+- **Definição de atraso:** a ANAC não fixa oficialmente um tempo de diferença entre horário de partida prevista e horário de partida real como atraso. Contudo, o padrão adotado internacionalmente é de 15 minutos. A Seção § 234.2 (Definitions) do Title 14 CFR Part 234 (Departamento de Transportes dos EUA — DOT) define textualmente o termo Late or late flight (voo atrasado) como qualquer voo que chegue ao portão 15 minutos ou mais após o horário de chegada publicado. O indicador OTP15 da EUROCONTROL / Cirium / OAGO classifica como pontual o voo que chega ou parte em até 15 minutos após o horário programado (sendo considerado atrasado a partir de 15 minutos e 1 segundo). Portanto, alvo `atrasado` vale 1 quando o tempo de diferença entre horário de partida prevista e horário de partida real é maior que 15 minutos e 0 caso contrário.
+- **Voos cancelados:** excluídos e tratados a parte, visto que o alvo não existe para eles, não há horários de partida previstos e reais para serem considerados.
+- **Voos sem horário previsto:** excluídos, porque sem ele não é possível medir atraso.
+- **Número do voo:** tratado como texto, pois há valores com letras. Não é usado como variável na primeira versão.
+- **Duplicados:** removidos pela combinação companhia, número do voo, origem e partida prevista.
+- **Formato do arquivo:** a primeira linha contém a data de atualização e é ignorada na leitura. Separador `;`, valores ausentes como `null`.
+
+#### Códigos usados
+
+- **Código Tipo Linha:** 'N' = Doméstica Mista, 'I' = Internacional Mista.
+- **Código Autorização (DI):** '0' = Etapa Regular, '2' = Etapa Extra, '4' = Inclusão de Etapa, 'D' = Etapa de Voo Duplicada.
+- 
 ## Principais decisões de modelagem
 
 - **Divisão por data, e não aleatória:** o modelo treina com o passado e é testado com o futuro, como seria na prática.
