@@ -1,5 +1,7 @@
-# Teste do funcionamento da função url_do_mes() do módulo download_data.py
-from src.download_data import url_do_mes
+# Teste do funcionamento das funções url_do_mes() e validar_arquivo() do módulo download_data.py
+from src.download_data import url_do_mes, validar_arquivo
+import pytest
+
 def test_url_dezembro_2025():
     esperado = ('https://sistemas.anac.gov.br/dadosabertos/'
                 'Voos%20e%20opera%C3%A7%C3%B5es%20a%C3%A9reas/'
@@ -15,6 +17,30 @@ def test_url_mes_de_um_digito():
     assert url_do_mes(2026, 9) == esperado
 
 def test_mes_invalido():
-    import pytest
     with pytest.raises(ValueError):
         url_do_mes(2025, 13)
+
+def test_validar_arquivo_ok(tmp_path):
+    arq = tmp_path / 'x.csv'
+    arq.write_text(
+        'Atualizado em: 2026-01-01\n'
+        '"ICAO Empresa Aérea";"Número Voo"\n' + 'x' * 20000,
+        encoding='utf-8',
+    )
+    assert validar_arquivo(arq)
+
+
+def test_validar_arquivo_pequeno(tmp_path):
+    arq = tmp_path / 'x.csv'
+    arq.write_text('erro', encoding='utf-8')
+    assert not validar_arquivo(arq)
+
+
+def test_validar_arquivo_sem_cabecalho(tmp_path):
+    arq = tmp_path / 'x.csv'
+    arq.write_text(
+        'Atualizado em: 2026-01-01\n'
+        '<html>Pagina de erro</html>\n' + 'x' * 20000,
+        encoding='utf-8',
+    )
+    assert not validar_arquivo(arq)
