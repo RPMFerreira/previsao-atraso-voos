@@ -2,6 +2,8 @@ from urllib.parse import quote
 from pathlib import Path
 import requests
 import logging
+import time
+from collections import Counter
 
 log = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ def url_do_mes(ano: int, mes: int) -> str:
     caminho = f'{CAMINHO}/{ano}/{pasta}/{arquivo}'
     return BASE + quote(caminho)
 
+# Confere se o arquivo baixado é válido, verificando tamanho e presença de cabeçalho esperado
 def validar_arquivo(caminho: Path) -> bool:
     if caminho.stat().st_size < TAMANHO_MINIMO:
         return False
@@ -36,7 +39,9 @@ def validar_arquivo(caminho: Path) -> bool:
         cabecalho = f.readline()
     return COLUNA_ESPERADA in cabecalho
 
+# Função que baixa o arquivo CSV do VRA da ANAC para o ano e mês especificados, salvando na pasta de dados brutos
 def baixar_mes(ano: int, mes: int, pasta: Path = PASTA) -> str:
+    # Devolve 'baixado', 'existia' ou 'falhou'
     pasta.mkdir(parents=True, exist_ok=True)
     destino = pasta / f'VRA_{ano}{mes}.csv'
     if destino.exists():
@@ -60,8 +65,33 @@ def baixar_mes(ano: int, mes: int, pasta: Path = PASTA) -> str:
         return 'falhou'
 
     temporario.replace(destino)
+    megabytes = destino.stat().st_size / (1024 * 1024)
+    log.info('Baixado %d-%02d: %.1f MB', ano, mes, megabytes)
     return 'baixado'
 
+def baixar_intervalo(ano_ini: int, mes_ini: int, ano_fim: int, mes_fim: int) -> Counter:
+    if (ano_ini, mes_ini) > (ano_fim, mes_fim):
+        raise ValueError('Intervalo inválido: o início é posterior ao fim.')
+    
+    resultados = Counter()
+    falhas = []
+    for ano in range(ano_ini, ano_fim + 1):
+        for mes in range(1, 13):
+            if (ano == ano_ini and mes < mes_ini) or (ano == ano_fim and mes > mes_fim):
+                continue
+            resultado = baixar_mes(ano, mes)
+            resultados[resultado] += 1
+            if resultado == 'falhou':
+                falhas.append(f'{ano}-{mes:02d}')
+            if resultado == 'baixado':
+                time.sleep(1)  # evitar sobrecarga no servidor da ANAC
+
+    log.info('Baixados: %d, Existiam %d, Falhas: %d', resultados['baixado'], resultados['ja_existia'], resultados['falhou'])
+    if falhas:
+        log.warning('Falhas nos meses: %s', ', '.join(falhas))
+
+    return resultados
+
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    print(baixar_mes(2025, 9))
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    baixar_intervalo(2025, 11, 2026, 2)

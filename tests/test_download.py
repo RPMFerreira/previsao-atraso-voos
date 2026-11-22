@@ -1,5 +1,5 @@
 # Teste do funcionamento das funções url_do_mes() e validar_arquivo() do módulo download_data.py
-from src.download_data import url_do_mes, validar_arquivo
+from src.download_data import url_do_mes, validar_arquivo, baixar_intervalo
 import pytest
 
 def test_url_dezembro_2025():
@@ -44,3 +44,18 @@ def test_validar_arquivo_sem_cabecalho(tmp_path):
         encoding='utf-8',
     )
     assert not validar_arquivo(arq)
+
+def test_intervalo_cruza_virada_de_ano(monkeypatch):
+    chamados = []
+
+    def falso_baixar_mes(ano, mes):
+        chamados.append((ano, mes))
+        return 'baixado'
+
+    monkeypatch.setattr('src.download_data.baixar_mes', falso_baixar_mes)
+    monkeypatch.setattr('src.download_data.time.sleep', lambda s: None)
+
+    resultados = baixar_intervalo(2025, 11, 2026, 2)
+
+    assert chamados == [(2025, 11), (2025, 12), (2026, 1), (2026, 2)]
+    assert resultados['baixado'] == 4
