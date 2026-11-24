@@ -19,11 +19,20 @@ Quem vai comprar uma passagem ou escolher o tempo de espera entre dois voos prec
 - **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros brutos e 2.273.141 voos domésticos realizados após a limpeza.
 - **Exclusão:** 2020 a 2022, por causa dos efeitos da pandemia e da retomada do setor aéreo. *(Hipótese a confirmar nos dados.)*
 - **Seleção de aeroportos e rotas** (regra definida antes de modelar, usando só o treino de 2023):
-  1. Os 16 aeroportos com mais saídas no treino (corte no segundo salto de volume da lista; Viracopos, SBKP, é o 4º).
-  2. Rotas (origem-destino) entre esses aeroportos com pelo menos 500 voos no treino: **148 rotas, 413.252 voos (cerca de 55% do treino)**.
-  3. As mesmas rotas são mantidas em validação e teste. Voos de rotas ausentes do treino são excluídos desses conjuntos, e a quantidade fica registrada na tabela de contagens.
-- **Lista final de aeroportos e contagens:** *a preencher após a etapa de limpeza*, com a regra já descrita acima.
-- Os dados **não** estão neste repositório. Veja "Como rodar" para baixá-los.
+  1. Os **16 aeroportos** com mais saídas no treino. O corte fica logo antes de uma queda de volume na lista (de cerca de 12,8 mil para cerca de 11 mil saídas).
+  2. Rotas (origem-destino) entre esses aeroportos com pelo menos **500 voos no treino**: **148 rotas**.
+  3. A mesma lista de rotas vale para validação e teste. Voos de rotas que não estão na lista saem desses conjuntos.
+
+  Aeroportos selecionados (código ICAO): SBSP, SBGR, SBRJ, SBKP, SBBR, SBCF, SBRF, SBPA, SBSV, SBCT, SBFZ, SBGL, SBBE, SBFL, SBGO, SBVT.
+
+  | Conjunto | Voos nas rotas selecionadas | Voos realizados do ano | Parte mantida |
+  |---|---|---|---|
+  | Treino (2023) | 413.252 | 752.437 | 54,9% |
+  | Validação (2024) | 373.367 | 750.585 | 49,7% |
+  | Teste (2025) | 403.594 | 770.118 | 52,4% |
+  | **Total** | **1.190.213** | **2.273.140** | **52,4%** |
+
+  O modelo só opina sobre essas 148 rotas. Voos fora delas não são avaliados, e essa é uma limitação do projeto.
 
 ### Dicionário de dados
 
@@ -70,6 +79,7 @@ Executada por `python -m src.prepare_data`. Cada regra remove linhas, e o script
 | 2 | Considera Etapa Regular, Etapa Extra e Inclusão de Etapa | 2.357.369 | 43.794 |
 | 3 | Mantém só voos com partida prevista | 2.335.182 | 22.187 |
 | 4 | Remove duplicados (empresa, voo, origem, partida prevista) | 2.335.165 | 17 |
+| 5 | Mantém somente as 148 rotas selecionadas | 1.190.213 | 1.144.952 |
 
 Divisão final:
 
