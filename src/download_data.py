@@ -69,6 +69,7 @@ def baixar_mes(ano: int, mes: int, pasta: Path = PASTA) -> str:
     log.info('Baixado %d-%02d: %.1f MB', ano, mes, megabytes)
     return 'baixado'
 
+# Chama a função baixar_mes para intervalo especificado
 def baixar_intervalo(ano_ini: int, mes_ini: int, ano_fim: int, mes_fim: int) -> Counter:
     if (ano_ini, mes_ini) > (ano_fim, mes_fim):
         raise ValueError('Intervalo inválido: o início é posterior ao fim.')
@@ -94,4 +95,4 @@ def baixar_intervalo(ano_ini: int, mes_ini: int, ano_fim: int, mes_fim: int) -> 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    baixar_intervalo(2025, 11, 2026, 2)
+    baixar_intervalo(2023, 1, 2025, 12) # Intervalo definido

@@ -1,4 +1,4 @@
-# Teste do funcionamento das funções url_do_mes() e validar_arquivo() do módulo download_data.py
+# Teste do funcionamento das funções url_do_mes(), validar_arquivo() e baixar_intervalo() do módulo download_data.py
 from src.download_data import url_do_mes, validar_arquivo, baixar_intervalo
 import pytest
 

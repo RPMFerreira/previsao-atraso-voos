@@ -16,7 +16,7 @@ Quem vai comprar uma passagem ou escolher o tempo de espera entre dois voos prec
   - Treino: 2023
   - Validação (ajuste do modelo): 2024
   - Teste final: 2025
-- **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros (registros brutos).
+- **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros brutos e 2.273.141 voos domésticos realizados após a limpeza.
 - **Exclusão:** 2020 a 2022, por causa dos efeitos da pandemia e da retomada do setor aéreo. *(Hipótese a confirmar nos dados.)*
 - **Seleção de aeroportos e rotas** (regra definida antes de olhar o resultado):
   1. Contar os voos por aeroporto apenas no período de treino.
@@ -57,7 +57,41 @@ Colunas da base VRA utilizadas no projeto:
 #### Códigos usados
 
 - **Código Tipo Linha:** 'N' = Doméstica Mista.
-- **Código Autorização (DI):** '0' = Etapa Regular, '2' = Etapa Extra, '4' = Inclusão de Etapa, 'D' = Etapa de Voo Duplicada.
+- **Código Autorização (DI):** '0' = Etapa Regular, '2' = Etapa Extra, '4' = Inclusão de Etapa.
+
+## Limpeza dos dados
+
+Executada por `python -m src.prepare_data`. Cada regra remove linhas, e o script registra a contagem depois de cada passo:
+
+| Passo | Regra | Linhas restantes | Removidas |
+|---|---|---|---|
+| 0 | Registros brutos (36 arquivos) | 2.972.195 | – |
+| 1 | Tipo de linha `N` (doméstica) | 2.401.163 | 571.032 |
+| 2 | Considera Etapa Regular, Etapa Extra e Inclusão de Etapa | 2.357.369 | 43.794 |
+| 3 | Mantém só voos com partida prevista | 2.335.182 | 22.187 |
+| 4 | Remove duplicados (empresa, voo, origem, partida prevista) | 2.335.165 | 17 |
+
+Divisão final:
+
+| Grupo | Linhas |
+|---|---|
+| Voos realizados (com alvo) | 2.273.140 |
+| Voos cancelados (fora do alvo) | 62.024 (2,66%) |
+
+
+## Taxa de atraso por conjunto
+
+Considerando atraso como partida real mais de 15 minutos depois da prevista:
+
+| Conjunto | Ano | Voos | % atrasados |
+|---|---|---|---|
+| Treino | 2023 | 752.437 | 16,3% |
+| Validação | 2024 | 750.585 | 15,7% |
+| Teste | 2025 | 770.118 | 14,9% |
+
+Reprodução: `python analysis/taxa_por_conjunto.py`.
+
+Um modelo que sempre responde "não atrasa" acertaria 84,3% dos voos no conjunto de validação. Por isso, a acurácia sozinha não é usada como métrica.
 
 ## Principais decisões de modelagem
 
@@ -84,7 +118,7 @@ Colunas da base VRA utilizadas no projeto:
 ## Roadmap
 
 - [x] Download automatizado dos dados (com validação e testes)
-- [ ] Limpeza dos dados e criação do alvo
+- [x] Limpeza dos dados e criação do alvo
 - [ ] Análise exploratória e linha de base
 - [ ] Modelagem e avaliação
 - [ ] Banco de dados PostgreSQL
