@@ -18,10 +18,10 @@ Quem vai comprar uma passagem ou escolher o tempo de espera entre dois voos prec
   - Teste final: 2025
 - **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros brutos e 2.273.141 voos domésticos realizados após a limpeza.
 - **Exclusão:** 2020 a 2022, por causa dos efeitos da pandemia e da retomada do setor aéreo. *(Hipótese a confirmar nos dados.)*
-- **Seleção de aeroportos e rotas** (regra definida antes de olhar o resultado):
-  1. Contar os voos por aeroporto apenas no período de treino.
-  2. Manter os aeroportos com mais voos [N a definir].
-  3. Manter as rotas entre eles com pelo menos [mínimo a definir] voos no treino.
+- **Seleção de aeroportos e rotas** (regra definida antes de modelar, usando só o treino de 2023):
+  1. Os 16 aeroportos com mais saídas no treino (corte no segundo salto de volume da lista; Viracopos, SBKP, é o 4º).
+  2. Rotas (origem-destino) entre esses aeroportos com pelo menos 500 voos no treino: **148 rotas, 413.252 voos (cerca de 55% do treino)**.
+  3. As mesmas rotas são mantidas em validação e teste. Voos de rotas ausentes do treino são excluídos desses conjuntos, e a quantidade fica registrada na tabela de contagens.
 - **Lista final de aeroportos e contagens:** *a preencher após a etapa de limpeza*, com a regra já descrita acima.
 - Os dados **não** estão neste repositório. Veja "Como rodar" para baixá-los.
 
