@@ -16,7 +16,7 @@ Quem vai comprar uma passagem ou escolher o tempo de espera entre dois voos prec
   - Treino: 2023
   - Validação (ajuste do modelo): 2024
   - Teste final: 2025
-- **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros brutos e 2.273.141 voos domésticos realizados após a limpeza.
+- **Tamanho:** cerca de 421 MB no total, com 2.972.195 registros brutos e 2.273.140 voos domésticos realizados após a limpeza.
 - **Exclusão:** 2020 a 2022, por causa dos efeitos da pandemia e da retomada do setor aéreo. *(Hipótese a confirmar nos dados.)*
 - **Seleção de aeroportos e rotas** (regra definida antes de modelar, usando só o treino de 2023):
   1. Os **16 aeroportos** com mais saídas no treino. O corte fica logo antes de uma queda de volume na lista (de cerca de 12,8 mil para cerca de 11 mil saídas).
@@ -42,7 +42,7 @@ Colunas da base VRA utilizadas no projeto:
 |---|---|---|---|---|
 | ICAO Empresa Aérea | Sigla ICAO (International Civil Aviation Organization) para empresas aéreas | Texto | - | Variável |
 | Número Voo | Numeração do voo | Texto | - | Identificador |
-| Código Autorização (DI) | Caractere usado para identificar o Dígito Identificador (DI) para cada etapa de voo | Texto | - | A ser investigado
+| Código Autorização (DI) | Caractere usado para identificar o Dígito Identificador (DI) para cada etapa de voo | Texto | - | Filtro |
 | Código Tipo Linha | Caractere usado para identificar o Tipo de Linha realizada para cada etapa de voo | Texto | - | Filtro |
 | ICAO Aeródromo Origem | Sigla ICAO do aeroporto de origem | Texto | - | Variável |
 | ICAO Aeródromo Destino | Sigla ICAO do aeroporto de destino | Texto | - | Variável |
@@ -76,10 +76,12 @@ Executada por `python -m src.prepare_data`. Cada regra remove linhas, e o script
 |---|---|---|---|
 | 0 | Registros brutos (36 arquivos) | 2.972.195 | – |
 | 1 | Tipo de linha `N` (doméstica) | 2.401.163 | 571.032 |
-| 2 | Considera Etapa Regular, Etapa Extra e Inclusão de Etapa | 2.357.369 | 43.794 |
+| 2 | Considera Etapa Regular (DI = 0), Etapa Extra (DI = 2) e Inclusão de Etapa (DI = 4) | 2.357.369 | 43.794 |
 | 3 | Mantém só voos com partida prevista | 2.335.182 | 22.187 |
 | 4 | Remove duplicados (empresa, voo, origem, partida prevista) | 2.335.165 | 17 |
-| 5 | Mantém somente as 148 rotas selecionadas | 1.190.213 | 1.144.952 |
+| 5 | Separa cancelados (62.024) e realizados | 2.273.141 | - |
+| 6 | Partida prevista entre 2023 e 2025 | 2.273.140 | 1 |
+| 7 | Mantém as 148 rotas selecionadas | 1.190.213 | 1.082.927 |
 
 Divisão final:
 
@@ -103,11 +105,36 @@ Reprodução: `python analysis/taxa_por_conjunto.py`.
 
 Um modelo que sempre responde "não atrasa" acertaria 84,3% dos voos no conjunto de validação. Por isso, a acurácia sozinha não é usada como métrica.
 
+## Exploração
+
+Análise feita **somente com o treino (2023)**, restrito às 148 rotas selecionadas (413.252 voos, taxa média de atraso de **17,3%**). Esta média é maior que a de todo o treino (16,3%) porque as rotas selecionadas concentram os aeroportos mais movimentados. Script: `analysis/explorar.py`. Gráficos em `docs/figuras/`.
+
+### Principais achados
+
+1. **A hora de partida é a variável mais informativa.** A taxa de atraso cresce ao longo do dia, sendo 4,4% às 5h e 4,8% às 4h, contra 23,9% às 18h e 23,7% às 19h. Voos entre 17h e 23h ficam acima de 20%.
+2. **Há sazonalidade e efeito do dia da semana.**
+   - Por mês: o menor valor é maio (10,5%) e o maior é outubro (24,6%), seguido de novembro (22,1%) e dezembro (21,0%).
+   - Por dia da semana: quinta (20,5%) e sexta (20,9%) têm mais atrasos, e sábado (12,7%) tem menos.
+3. **Aeroporto e companhia também diferem.**
+   - Entre os aeroportos de origem, Guarulhos (SBGR, 22,1%) e Congonhas (SBSP, 20,0%) ficam acima da média, e Brasília (SBBR, 8%) fica bem abaixo.
+   - Entre as companhias, GLO tem 20,3%, TAM 17,2% e AZU 14,4%.
+
+![Taxa de atraso por hora prevista](docs/figuras/taxa_hora_prevista.png)
+
+![Taxa de atraso por mês](docs/figuras/taxa_mes.png)
+
+### Como ler estes resultados
+
+- Cada gráfico mostra uma variável **isolada**. Hora, aeroporto, companhia e dia da semana estão relacionados entre si (por exemplo, o perfil de voos por hora muda de um aeroporto para outro), então não dá para dizer quanto cada uma pesa. É o modelo que separa essas contribuições.
+- Diferenças entre grupos **não provam causa**. O aumento do atraso ao longo do dia é compatível com o acúmulo de atrasos (um voo atrasado de manhã atrasa os seguintes), mas isso não foi testado aqui.
+- Os grupos das 2h e 3h têm poucos voos (3.289 e 3.913) e taxas menos confiáveis. Os demais têm volume mais sólido, e todos os aeroportos e companhias do gráfico têm mais de 6 mil voos.
+- O padrão mensal vem de **um único ano** (2023). A validação (2024) e o teste (2025) mostram se ele se repete.
+
 ## Principais decisões de modelagem
 
 - **Divisão por data, e não aleatória:** o modelo treina com o passado e é testado com o futuro, como seria na prática.
 - **Sem vazamento de dados:** nenhuma informação obtida depois do voo entra como variável.
-- **Comparação com uma linha de base** (taxa histórica de atraso da rota): um modelo só vale se superá-la.
+- **Comparação com uma linha de base** (taxa histórica de atraso por hora): um modelo só vale se superá-la.
 - **Calibração das probabilidades:** quando o modelo diz 30%, cerca de 30% dos voos devem atrasar.
 
 ## Resultados
@@ -116,20 +143,24 @@ Um modelo que sempre responde "não atrasa" acertaria 84,3% dos voos no conjunto
 
 | Modelo | ROC-AUC | Brier score |
 |---|---|---|
-| Linha de base (média histórica) | – | – |
+| Linha de base: taxa global | 0,500 | 0,13787 |
+| Linha de base: taxa por rota | 0,544 | 0,13788 |
+| Linha de base: taxa por hora | 0,616 | 0,13460 |
 | Regressão logística | – | – |
 | Gradient boosting | – | – |
 
+Os modelos são treinados em 2023 e avaliados em 2024 nas 148 rotas selecionadas.
+
 ## Tecnologias
 
-- Em uso: Python · DuckDB · pytest
-- Planejadas: FastAPI · PostgreSQL · GitHub Actions · scikit-learn · pandas
+- Em uso: Python · DuckDB · pytest · pandas · matplotlib · pyarrow
+- Planejadas: FastAPI · PostgreSQL · GitHub Actions · scikit-learn
 
 ## Roadmap
 
 - [x] Download automatizado dos dados (com validação e testes)
 - [x] Limpeza dos dados e criação do alvo
-- [ ] Análise exploratória e linha de base
+- [x] Análise exploratória e linha de base
 - [ ] Modelagem e avaliação
 - [ ] Banco de dados PostgreSQL
 - [ ] API REST (FastAPI)
@@ -138,30 +169,106 @@ Um modelo que sempre responde "não atrasa" acertaria 84,3% dos voos no conjunto
 
 ## Como rodar
 
-Requisitos: Python 3.12 ou superior e Git.
+Requisitos: Python 3.12 ou superior e Git. Desenvolvido e testado no Windows com Python 3.14.
+
+### 0. Preparar o ambiente
 
 ```bash
 git clone https://github.com/RPMFerreira/previsao-atraso-voos.git
 cd previsao-atraso-voos
 python -m venv .venv
-.venv\Scripts\activate        # Windows (no Linux/macOS: source .venv/bin/activate)
+```
+
+Ativar o ambiente virtual:
+
+```bash
+# Windows (PowerShell)
+.venv\Scripts\activate
+# Linux/macOS
+source .venv/bin/activate
+```
+
+Instalar as dependências:
+
+```bash
 pip install -r requirements.txt
 ```
 
+> No PowerShell, se a ativação for bloqueada, execute uma vez `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+Todos os comandos abaixo devem ser executados **na raiz do projeto**, com o ambiente ativado.
+
 ### 1. Baixar os dados
+
 ```bash
 python -m src.download_data
 ```
-Baixa os arquivos mensais da ANAC para `data/raw/` (a pasta é ignorada pelo Git). O script pula os arquivos que já existem e valida cada download, então pode ser executado de novo sem repetir o trabalho.
 
-### 2. Testes
+Baixa os 36 arquivos mensais (janeiro de 2023 a dezembro de 2025) da ANAC para `data/raw/`, cerca de 420 MB no total. A pasta `data/` é ignorada pelo Git. O script pula arquivos que já existem e valida cada download, então pode ser executado de novo sem repetir o trabalho. Para mudar o período, edite a chamada de `baixar_intervalo` no final do arquivo `src/download_data.py`.
+
+### 2. Limpar os dados e criar o alvo
+
+```bash
+python -m src.prepare_data
+```
+
+Lê os CSVs, aplica as regras descritas em "Limpeza dos dados", seleciona os 16 aeroportos e as 148 rotas e grava em `data/processed/`:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `voos.parquet` | Todos os voos domésticos realizados, com o alvo `atrasado` e o conjunto (treino, validação ou teste) |
+| `voos_selecionados.parquet` | Os voos das 148 rotas selecionadas (base da modelagem) |
+| `cancelados.parquet` | Voos cancelados, fora do alvo |
+
+A execução mostra no terminal a contagem de linhas depois de cada regra. O primeiro número deve ser 2.972.195.
+
+### 3. Análises
+
+```bash
+python analysis/taxa_por_conjunto.py   # taxa de atraso por conjunto
+python analysis/explorar.py            # tabelas e gráficos (salvos em docs/figuras/)
+python analysis/linha_de_base.py       # linha de base: ROC-AUC e Brier Score
+```
+
+### 4. Testes
+
 ```bash
 pytest
 ```
 
+### Estrutura do repositório
+
+```
+src/                 download e preparação dos dados
+analysis/            exploração e linha de base
+tests/               testes automatizados (pytest)
+docs/figuras/        gráficos usados neste README
+data/                dados (não versionados)
+```
+
 ## Limitações
 
-*Em construção. Será preenchida com o que o modelo não consegue prever e com os pontos fracos encontrados nos testes.*
+### Escopo
+- **O modelo cobre só 148 rotas entre 16 aeroportos** (cerca de 52% dos voos domésticos regulares de 2023 a 2025). Voos de outras rotas não são avaliados, e o sistema não deve ser usado para elas.
+- **Estima atraso, e não cancelamento.** Os 62.024 voos cancelados (2,66% do total) ficam fora do alvo. Quem escolhe uma passagem também se importa com cancelamento, e isso não está coberto.
+- **Voos internacionais e de outros tipos de linha foram excluídos** (só o tipo `N`, doméstica).
+
+### Definição do alvo
+- **O limite de 15 minutos é uma escolha.** A ANAC não fixa um limite oficial e adaptei referências internacionais que medem a chegada para a **partida**. Outro limite (por exemplo 30 minutos) daria outros resultados.
+- **O atraso é medido na partida.** Para quem viaja, o atraso na chegada também importa, e não foi modelado.
+
+### Dados
+- **Voos com código de autorização (DI) fora de 0, 2 e 4 foram excluídos**.
+- **O volume de 2024 nas rotas selecionadas é menor** (373.367 voos, contra 413.252 em 2023 e 403.594 em 2025), embora o volume total do ano seja parecido. A causa não foi investigada.
+- **`voos_na_hora` conta apenas voos domésticos regulares** que permaneceram na base. Não inclui voos internacionais nem de outros tipos, então não representa o movimento total do aeroporto.
+- **Os horários vêm informados pelas empresas aéreas** e não foram verificados de forma independente.
+- **A base não traz o motivo dos atrasos.** O campo de justificativa deixou de ser exigido em 2020, então causas como clima ou manutenção não são conhecidas.
+
+### Modelagem e avaliação
+- **A taxa de atraso diminui de um ano para o outro** (16,3% em 2023, 15,7% em 2024 e 14,9% em 2025, em todos os voos do treino, da validação e do teste). Um modelo treinado em 2023 tende a superestimar o atraso depois, o que prejudica o Brier Score e a calibração.
+- **O padrão mensal vem de um único ano de treino.** Se a sazonalidade mudar, o modelo não acompanha.
+- **O atraso de um voo individual tem muito de aleatório.** Por isso, espera-se que os ganhos de Brier Score sejam pequenos em qualquer modelo, e o AUC é o melhor indicador do que foi aprendido.
+- **Não entram variáveis de clima, feriados, congestionamento em tempo real nem a cadeia de voos** (um atraso anterior da mesma aeronave), que provavelmente explicam boa parte dos atrasos.
 
 ## Aviso
 
